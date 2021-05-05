@@ -18,7 +18,7 @@
     
       if ( geometry instanceof THREE.BufferGeometry) {
         this.matrix = new THREE.Matrix4;
-      } else if ( geometry instanceof THREE.Geometry ) {
+      } else if ( THREE.Geometry && geometry instanceof THREE.Geometry ) {
         this.matrix = new THREE.Matrix4;
       } else if ( geometry instanceof THREE.Mesh ) {
         // #todo: add hierarchy support
@@ -224,6 +224,35 @@
       }
       return geometry;
     };
+
+    ThreeBSP.prototype.toBufferGeometry = function() {
+      const position = [];
+      const normal = [];
+      const uv = [];
+
+      const pushVertex = (vertex) => {
+        position.push(vertex.x, vertex.y, vertex.z);
+        normal.push(vertex.normal.x, vertex.normal.y, vertex.normal.z);
+        uv.push(vertex.uv.x, vertex.uv.y);
+      }
+
+      this.tree.allPolygons().forEach(polygon => {
+        const polygon_vertice_count = polygon.vertices.length;
+
+        for (let j = 2; j < polygon_vertice_count; j++ ) {
+          pushVertex(polygon.vertices[0]);
+          pushVertex(polygon.vertices[j - 1]);
+          pushVertex(polygon.vertices[j]);
+        }
+      });
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position), 3));
+      geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal), 3));
+      geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2));
+      return geometry;
+    }
+
     ThreeBSP.prototype.toMesh = function( material ) {
       var geometry = this.toGeometry(),
         mesh = new THREE.Mesh( geometry, material );
